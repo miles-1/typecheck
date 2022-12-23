@@ -96,6 +96,10 @@ class Num:
     def _isBoundType(self, num):
         return num == None or isinstance(num, (int, float))
 
+class TL(tuple):
+    def __new__(cls, *args):
+        return super().__new__(cls, args)
+
 class _Dummy:
     def __new__(cls, obj):
         length = obj if isinstance(obj, int) else len(obj)
