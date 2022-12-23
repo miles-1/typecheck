@@ -56,17 +56,23 @@ class Callable:
 
 class Num:
     def __init__(self, *info, num_type=None):
+        # validate params
         checkType(
             ("num_type", Op(Ex(None), type), num_type)
         )
-        if isinstance(info[0], tuple) and len(info) == 1:
+        # setup parameters
+        if not len(info):
+            info = (None, None)
+        elif isinstance(info[0], tuple) and len(info) == 1:
             info = info[0]
+        # set ranges
         if len(info) == 2 and all(map(self._isBoundType, info)):
             self.ranges = (info,)
         elif all(map(lambda x: isinstance(x, tuple), info)):
             self.ranges = info
         else:
             raise TypeError(f"info must be two bounds or a list of tuples of two bounds")
+        # set types
         self.num_type = (int, float) if not num_type else \
             (num_type,) if isinstance(num_type, type) else num_type
     
@@ -83,6 +89,8 @@ class Num:
             elif high == None:
                 if low <= num:
                     return True
+            else:
+                return True
         return False
                 
     def _isBoundType(self, num):
