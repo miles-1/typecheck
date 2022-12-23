@@ -4,6 +4,13 @@
 
 This module provides a function, `checkType`, that allows for type enforcement of parameters, and auto-generates a message if this type is not fulfilled.
 
+## Installation
+
+Using `pip`:
+```
+pip install git+https://github.com/miles-1/typecheck.git
+```
+
 ## Example
 
 ```python
