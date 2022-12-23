@@ -83,14 +83,14 @@ class Num:
             if None not in (low, high):
                 if low <= num <= high:
                     return True
+            elif low == None and high == None:
+                return True
             elif low == None:
                 if num <= high:
                     return True
-            elif high == None:
+            else:
                 if low <= num:
                     return True
-            else:
-                return True
         return False
                 
     def _isBoundType(self, num):
@@ -174,7 +174,9 @@ def _hasType(expd, actual):
     # (6) Num(<inputs>)
     elif isinstance(expd, Num):
         has_struct = expd.isMatch(actual)
-        struct_dict = {"Type": list(t.__name__ for t in expd.num_type), "Ranges": expd.ranges}
+        struct_dict = {"Type": list(t.__name__ for t in expd.num_type)}
+        if any(expd.ranges[0]):
+            struct_dict["Ranges"] = expd.ranges
     ######## Nesting options ########
     # (A) Op(<expd1>, <expd2>)
     elif isinstance(expd, Op):
