@@ -39,9 +39,12 @@ The following are the valid ways to create a value for `<expected>`. The symbols
 2. `<Type>`: Object of type `<Type>`
 3. `Op(<Type1>, <Type2>)`: Object of type `<Type1>` or `<Type2>` (`Op` is short for `Options`.)
 4. `Ex("literal1", "literal2")`: Object from a set of allowed values (`Ex` is short for Exact Values. Assessed with `in`, so `2` would satisfy `Ex(2.0, 1.0)`.)
+5. `Callable()`: Obj returns true with python's `callable` function
+6. `Num(<args>, num_type=<Type>)`: Obj returns true if it is of type `num_type` and if it lays within specified bounds in `<args>`.
+
 ### Nesting options:
-5. `Op(<expd1>, <expd2>)`: Object that has `<expd1>` or `<expd2>` structure
-6. `(<expd1>, <expd2>)`: Tuple (*or other positional iterable*) where the first element has `<expd1>` structure, second has `<expd2>` structure
-7. `(<expd>,)`: Tuple (*or other nondictlike iterable*) of elements that have `<expd>` structure
-8. `(<expd>, <length>)`: Tuple (*or other measurable iterable*) of elements that have `<expd>` structure and integer length `<length>`
-9. `{<expdkey>: <expdval>}`: Dictionary (*or other dictlike iterable*) where keys have `<expdkey>` structure and values have `<expdval>` structure
+1. `Op(<expd1>, <expd2>)`: Object that has `<expd1>` or `<expd2>` structure
+2. `(<expd1>, <expd2>)`: Tuple (*or other positional iterable*) where the first element has `<expd1>` structure, second has `<expd2>` structure
+3. `(<expd>,)`: Tuple (*or other nondictlike iterable*) of elements that have `<expd>` structure
+4. `(<expd>, <length>)`: Tuple (*or other measurable iterable*) of elements that have `<expd>` structure and integer length `<length>`
+5. `{<expdkey>: <expdval>}`: Dictionary (*or other dictlike iterable*) where keys have `<expdkey>` structure and values have `<expdval>` structure

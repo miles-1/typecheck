@@ -51,6 +51,43 @@ class Ex(tuple):
 class Any:
     pass
 
+class Callable:
+    pass
+
+class Num:
+    def __init__(self, *info, num_type=None):
+        checkType(
+            ("num_type", Op(Ex(None), type), num_type)
+        )
+        if isinstance(info[0], tuple) and len(info) == 1:
+            info = info[0]
+        if len(info) == 2 and all(map(self._isBoundType, info)):
+            self.ranges = (info,)
+        elif all(map(lambda x: isinstance(x, tuple), info)):
+            self.ranges = info
+        else:
+            raise TypeError(f"info must be two bounds or a list of tuples of two bounds")
+        self.num_type = (int, float) if not num_type else \
+            (num_type,) if isinstance(num_type, type) else num_type
+    
+    def isMatch(self, num):
+        if not isinstance(num, self.num_type):
+            return False
+        for low, high in self.ranges:
+            if None not in (low, high):
+                if low <= num <= high:
+                    return True
+            elif low == None:
+                if num <= high:
+                    return True
+            elif high == None:
+                if low <= num:
+                    return True
+        return False
+                
+    def _isBoundType(self, num):
+        return num == None or isinstance(num, (int, float))
+
 class _Dummy:
     def __new__(cls, obj):
         length = obj if isinstance(obj, int) else len(obj)
@@ -83,16 +120,18 @@ def checkType(*info_tuple, print_errors=False):
     The following are the valid ways to create a value for <expected>. The symbols <expd>, <expd1>, etc below represent any valid value of <expected>.
 
     Terminal options:
-    1. Any()                       # obj of any type
-    2. <Type>                      # obj of type <Type>
-    3. Op(<Type1>, <Type2>)        # obj of type <Type1> or <Type2> (Op short for Options)
-    4. Ex("literal1", "literal2")  # obj from set of allowed values, assessed with `in` (Ex short for Exact Values)
-    Nesting options:
-    5. Op(<expd1>, <expd2>)        # obj that has <expd1> or <expd2> structure
-    6. (<expd1>, <expd2>)          # Tuple (or other positional iterable) where the first element has <expd1> structure, second has <expd2> structure
-    7. (<expd>,)                   # Tuple (or other nondictlike iterable) of elements that have <expd> structure
-    8. (<expd>, <length>)          # Tuple (or other measurable iterable) of elements that have <expd> structure and integer length <length>
-    9. {<expdkey>: <expdval>}      # Dictionary (or other dictlike iterable) where keys have <expdkey> structure and values have <expdval> structure
+    (1) Any()                         # obj of any type
+    (2) <Type>                        # obj of type <Type>
+    (3) Op(<Type1>, <Type2>)          # obj of type <Type1> or <Type2> (Op short for Options)
+    (4) Ex("literal1", "literal2")    # obj from set of allowed values, assessed with `in` (Ex short for Exact Values)
+    (5) Callable()                    # obj returns true with python's `callable` function
+    (6) Num(<args>, num_type=<Type>)  # obj returns true if 1) is of type `num_type` and 2) lays within specified bounds in `<args>`.
+    Nesting options:  
+    (A) Op(<expd1>, <expd2>)          # obj that has <expd1> or <expd2> structure
+    (B) (<expd1>, <expd2>)            # Tuple (or other positional iterable) where the first element has <expd1> structure, second has <expd2> structure
+    (C) (<expd>,)                     # Tuple (or other nondictlike iterable) of elements that have <expd> structure
+    (D) (<expd>, <length>)            # Tuple (or other measurable iterable) of elements that have <expd> structure and integer length <length>
+    (E) {<expdkey>: <expdval>}        # Dictionary (or other dictlike iterable) where keys have <expdkey> structure and values have <expdval> structure
     """
     if isinstance(info_tuple[0], str):
         info_tuple = (info_tuple,)
@@ -107,27 +146,35 @@ def checkType(*info_tuple, print_errors=False):
 
 def _hasType(expd, actual):
     ######## Terminal options ########
-    # 1. Any()
+    # (1) Any()
     if isinstance(expd, Any):
         has_struct = True
         struct_dict = {"Type": "Any"}
-    # 2 & 3. <Type> and Op(<Type1>, <Type2>)
+    # (2) & (3) <Type> and Op(<Type1>, <Type2>)
     elif isinstance(expd, type) or \
         (isinstance(expd, Op) and expd.allType()):
         has_struct = isinstance(actual, expd)
         struct_dict = {"Type": _stringify(expd, Op)}
-    # 4. Ex("literal1", "literal2")
+    # (4) Ex("literal1", "literal2")
     elif isinstance(expd, Ex):
         has_struct = actual in expd
         struct_dict = {"Exact_Value": _stringify(expd, Ex)}
+    # (5) Callable()
+    elif isinstance(expd, Callable):
+        has_struct = callable(actual)
+        struct_dict = {"Type": "Callable"}
+    # (6) Num(<inputs>)
+    elif isinstance(expd, Num):
+        has_struct = expd.isMatch(actual)
+        struct_dict = {"Type": list(t.__name__ for t in expd.num_type), "Ranges": expd.ranges}
     ######## Nesting options ########
-    # 5. Op(<expd1>, <expd2>)
+    # (A) Op(<expd1>, <expd2>)
     elif isinstance(expd, Op):
         result_lst = tuple(map(lambda e: _hasType(e, actual), expd))
         has_struct = any(i[0] for i in result_lst)
         options_lst = list(i[1] for i in result_lst)
         struct_dict = {"Options": options_lst}
-    # 6. (<expd1>, <expd2>)
+    # (B) (<expd1>, <expd2>)
     elif isinstance(expd, allowed_iters.positional) and len(expd) > 1 \
         and not any(isinstance(i, int) for i in expd):
         expd_iter = type(expd)
@@ -140,8 +187,8 @@ def _hasType(expd, actual):
         collection_type = expd_iter.__name__
         struct_lst = list(i[1] for i in result_lst)
         struct_dict = {"Collection": collection_type, "Structure_by_Position": struct_lst}
-    # 7 & 8. (<expd>,) and (<expd>, <length>)
-    elif (isinstance(expd, allowed_iters.nondictlike) and len(expd) == 1) or \
+    # 7 & (D) (<expd>,) and (<expd>, <length>)
+    elif (isinstance(expd, allowed_iters.nondictlike) and len(expd) == (1)) or \
         (isinstance(expd, allowed_iters.measurable) and len(expd) == 2 and any(isinstance(i, int) for i in expd)):
         expd_iter, expd_elem_type, length = _getExpd(expd)
         if isinstance(actual, expd_iter) and len(actual) > 0 and \
@@ -149,14 +196,14 @@ def _hasType(expd, actual):
             result_lst = tuple(map(lambda a: _hasType(expd_elem_type, a), actual))
             has_struct = all(i[0] for i in result_lst)
         else:
-            result_lst = tuple(map(lambda a: _hasType(expd_elem_type, a), _Dummy(1)))
+            result_lst = tuple(map(lambda a: _hasType(expd_elem_type, a), _Dummy((1))))
             has_struct = False
         collection_type = expd_iter.__name__
         elem_struct = result_lst[0][1]
         struct_dict = {"Collection": collection_type, "Element_Structure": elem_struct}
         if length:
             struct_dict["Length"] = length
-    # 9. {<expdkey>: <expdval>}
+    # (E) {<expdkey>: <expdval>}
     elif isinstance(expd, allowed_iters.dictlike) and len(expd) == 1:
         expd_iter, expd_pair = type(expd), tuple(expd.items())[0]
         if isinstance(actual, expd_iter) and len(actual) >= 1:
@@ -169,5 +216,3 @@ def _hasType(expd, actual):
     else:
         raise TypeError(f"Bad structure object: {expd}")
     return (has_struct, struct_dict)
-
-checkType("hi", {int:Any()}, 1)
