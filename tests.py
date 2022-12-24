@@ -1,4 +1,4 @@
-from typecheck import checkType, Any, Op, Ex, Callable, Num
+from typecheck import checkType, Any, Op, Ex, Callable, Num, Array
 import numpy as np
 
 
@@ -46,6 +46,12 @@ checkType(
     ("+6.6", Num((1,2), (3,4), (5, None)), 5),
     ("+6.7", Num((1,2), (3,4), (5, None)), 20),
     ("+6.8", Num((1,2), (3,4), (5, None)), 10**100),
+    # (7) Array(<shape>)
+    ("+7.0", Array(), np.array([1,2])),
+    ("+7.1", Array(), np.array([[1,2],[3,4]])),
+    ("+7.2", Array(2), np.array([1,2])),
+    ("+7.3", Array(2, 2), np.array([[1,2],[3,4]])),
+    ("+7.4", Array(2, 2, 3), np.array([[[1,2,3],[1,2,3]],[[1,2,3],[1,2,3]]])),
     ######## Nesting options ########
     # (A) Op(<expd1>, <expd2>)
     ("+A.0", Op(float, Ex(1, 2, 3)), 1.0),
@@ -113,6 +119,14 @@ checkType(
     ("-6.6", Num((1,2), (3,4), (5, None)), 2.6),
     ("-6.7", Num((1,2), (3,4), (5, None)), 4.9),
     ("-6.8", Num((1,2), (3,4), (5, None)), -1),
+    # (7) Array(<shape>)
+    ("-7.0", Array(), 1),
+    ("-7.1", Array(), [1,2]),
+    ("-7.2", Array(), (1,2,3)),
+    ("-7.3", Array(2), np.array([1,2,3])),
+    ("-7.4", Array(2), np.array([[1,2],[2,3],[3,4]])),
+    ("-7.5", Array(2, 1), np.array([[1,2],[3,4]])),
+    ("-7.6", Array(2, 2), np.array([[[1,2,3],[1,2,3]],[[1,2,3],[1,2,3]]])),
     ######## Nesting options ########
     # (A) Op(<expd1>, <expd2>)
     ("-A.0", Op(float, Ex(1, 2, 3)), 4),

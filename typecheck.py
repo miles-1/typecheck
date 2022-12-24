@@ -54,6 +54,23 @@ class Any:
 class Callable:
     pass
 
+class Array:
+    def __init__(self, *args):
+        if args and any(not isinstance(arg, int) for arg in args):
+            raise TypeError("All inputs for arrays must be integers")
+        elif not args:
+            self.shape = None
+        else:
+            self.shape = args
+    
+    def isMatch(self, array):
+        if not isinstance(array, np.ndarray):
+            return False
+        elif self.shape:
+            return array.shape == self.shape
+        else:
+            return True
+
 class Num:
     def __init__(self, *info, num_type=None):
         # validate params
@@ -138,6 +155,7 @@ def checkType(*info_tuple, print_errors=False):
     (4) Ex("literal1", "literal2")    # obj from set of allowed values, assessed with `in` (Ex short for Exact Values)
     (5) Callable()                    # obj returns true with python's `callable` function
     (6) Num(<args>, num_type=<Type>)  # obj returns true if 1) is of type `num_type` and 2) lays within specified bounds in `<args>`.
+    (7) Array(<shape>)                # obj of type np.ndarray, and of shape <shape> if provided
     Nesting options:  
     (A) Op(<expd1>, <expd2>)          # obj that has <expd1> or <expd2> structure
     (B) (<expd1>, <expd2>)            # Tuple (or other positional iterable) where the first element has <expd1> structure, second has <expd2> structure
@@ -181,6 +199,12 @@ def _hasType(expd, actual):
         struct_dict = {"Type": list(t.__name__ for t in expd.num_type)}
         if any(expd.ranges[0]):
             struct_dict["Ranges"] = expd.ranges
+    # (7) Array(<shape>)
+    elif isinstance(expd, Array):
+        has_struct = expd.isMatch(actual)
+        struct_dict = {"Type": "ndarray"}
+        if expd.shape:
+            struct_dict["Shape"] = expd.shape
     ######## Nesting options ########
     # (A) Op(<expd1>, <expd2>)
     elif isinstance(expd, Op):
